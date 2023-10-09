@@ -8,14 +8,32 @@ export class InjectorResolutionError extends Error {
   }
 }
 
+let injectContext: IocContainer | null = null;
+
 export class IocContainer {
   private bindings = new Map<string, any>();
   private instances = new Map<string, any>();
 
-  public constructor() {}
+  public constructor() {
+    injectContext = this;
+  }
 
-  public bind<T>(ctor: AnyClass<T>, cargs: Array<any>) {
-    this.bindings.set(ctor.name, { className: ctor.name, cargs });
+  public bind<T>(ctor: AnyClass<T>) {
+    this.bindings.set(ctor.name, ctor);
+  }
+
+  public create<T>(ctor: AnyClass<T>, ...cargs: any[]): T {
+    injectContext = this;
+    if (this.bindings.has(ctor.name)) {
+      if (this.instances.has(ctor.name)) {
+        return this.instances.get(ctor.name);
+      }
+      const binding = this.bindings.get(ctor.name);
+      const inst = Reflect.construct(binding, cargs) as T;
+      this.instances.set(ctor.name, inst);
+      return inst;
+    }
+    throw new InjectorResolutionError(ctor.name);
   }
 
   public get<T>(ctor: AnyClass<T>): T {
@@ -23,18 +41,13 @@ export class IocContainer {
       if (this.instances.has(ctor.name)) {
         return this.instances.get(ctor.name);
       }
-      const { className, cargs } = this.bindings.get(ctor.name);
-      const inst = Reflect.construct(className, cargs) as T;
-      this.instances.set(ctor.name, inst);
-      return inst;
     }
     throw new InjectorResolutionError(ctor.name);
   }
 }
 
-let injectContext: IocContainer = new IocContainer();
-
-export function inject<T>(ctor: AnyClass<T>, cargs: Array<any>): T {
-  injectContext.bind(ctor, cargs);
-  return injectContext.get(ctor);
+export function inject<T>(ctor: AnyClass<T>, ...cargs: any[]): T {
+  if (!injectContext) throw new Error("No container");
+  injectContext.bind(ctor);
+  return injectContext.create(ctor, ...cargs);
 }
