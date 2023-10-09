@@ -45,3 +45,4 @@ console.log(otherInstance.someInstance.arg2); // 42
 * Factories
 * Types and Interfaces
 * Decorators (no support from ``reflect-metadata`` package)
+* Deep injection
