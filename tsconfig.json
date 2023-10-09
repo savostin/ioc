@@ -16,6 +16,8 @@
     "stripInternal": true,
     "moduleResolution": "node",
     "importHelpers": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
     "target": "es2015",
     "module": "commonjs"
   },
